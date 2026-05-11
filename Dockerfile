@@ -1,15 +1,24 @@
-# Use a base image that supports systemd, for example, Ubuntu
-FROM ubuntu:20.04
+# استخدام نسخة أحدث وأخف من Ubuntu
+FROM ubuntu:22.04
 
-# Install necessary packages
+# تثبيت الحزم وتحديث النظام في أمر واحد لتصغير حجم الصورة
 RUN apt-get update && \
-apt-get install -y shellinabox && \
-apt-get install -y systemd && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN echo 'root:root' | chpasswd
-# Expose the web-based terminal port
-EXPOSE 4200
+    apt-get install -y shellinabox sudo && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Start shellinabox
-CMD ["/usr/bin/shellinaboxd", "-t", "-s", "/:LOGIN"]
+# إنشاء مستخدم جديد (أفضل من الرووت) وتعيين كلمة سر له
+# سنسميه 'admin' وكلمة السر 'admin'
+RUN useradd -m -s /bin/bash admin && \
+    echo 'admin:admin' | chpasswd && \
+    adduser admin sudo
+
+# تغيير كلمة سر الرووت أيضاً للاحتياط
+RUN echo 'root:root' | chpasswd
+
+# إعداد Shellinabox ليعمل بدون تشفير SSL (لأن المنصة هي اللي توفر SSL)
+# وتغيير البورت ليكون 7860 (متوافق مع Hugging Face وأغلب الاستضافات)
+EXPOSE 7860
+
+# تشغيل الخدمة مع إعدادات تسمح بالوصول من المتصفح
+CMD ["/usr/bin/shellinaboxd", "-t", "--no-beep", "-p", "7860", "-s", "/:LOGIN"]
